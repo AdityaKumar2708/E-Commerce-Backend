@@ -1,0 +1,17 @@
+
+package com.rkind.ecommerce.order.entity;
+
+public enum ReturnExchangeStatus {
+    PENDING_ADMIN_REVIEW,
+    REJECTED,
+    APPROVED,
+    AWAITING_CUSTOMER_CONSENT,
+    CUSTOMER_DECLINED,
+    PICKUP_REQUESTED,
+    PICKED_UP,
+    REFUND_INITIATED,
+    REFUNDED,
+    REFUND_FAILED,
+    EXCHANGE_PROCESSING,
+    COMPLETED
+}

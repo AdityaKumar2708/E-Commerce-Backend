@@ -1,0 +1,19 @@
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: service-management-system-api
+    restart: unless-stopped
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://host.docker.internal:5432/service_management_system
+      SPRING_DATASOURCE_USERNAME: ${DB_USERNAME:?Set DB_USERNAME in .env}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}
+      SERVER_PORT: 8080
+      SPRING_JPA_HIBERNATE_DDL_AUTO: validate
+      SPRING_JPA_SHOW_SQL: "false"
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./uploads:/app/uploads
