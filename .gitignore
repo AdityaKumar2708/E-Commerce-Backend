@@ -55,3 +55,19 @@ build/
 *.dump
 *.sql
 *.backup
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Build files
+.gradle/
+build/
+.idea/
+.DS_Store
+
+\# Database backups
+*.dump
+*.sql
+*.backup
