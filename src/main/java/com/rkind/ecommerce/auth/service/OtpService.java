@@ -35,7 +35,7 @@ public class OtpService {
     @Value("${RESEND_API_KEY:}")
     private String resendApiKey;
 
-    @Value("${RESEND_FROM_EMAIL:otp@rajeshstationery.store}")
+    @Value("${RESEND_FROM_EMAIL:otp@rajeshstionery.store}")
     private String resendFromEmail;
 
     @Value("${app.otp.expiration-ms:300000}")
