@@ -22,8 +22,8 @@ public class AdminInitializer implements CommandLineRunner {
     @Value("${app.admin.email:rajeshstationery1978@gmail.com}")
     private String adminEmail;
 
-    private final String adminPassword =
-            System.getenv("RK_Stationery@20_10_2026");
+    @Value("${app.admin.password:}")
+    private String adminPassword;
 
     @Value("${app.admin.full-name:Rahul Kumar}")
     private String adminFullName;
