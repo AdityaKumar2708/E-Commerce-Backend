@@ -2,24 +2,41 @@
 package com.rkind.ecommerce.auth.service;
 
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import tools.jackson.databind.ObjectMapper;
 
-import java.security.SecureRandom;
+import java.io.IOException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.time.Duration;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.security.SecureRandom;
 
 @Service
 public class OtpService {
 
-    private final JavaMailSender mailSender;
     private final PasswordEncoder passwordEncoder;
+    private final ObjectMapper objectMapper;
+
     private final SecureRandom secureRandom = new SecureRandom();
 
     private final Map<String, OtpEntry> otpStore =
             new ConcurrentHashMap<>();
+
+    private final HttpClient httpClient = HttpClient.newBuilder()
+            .connectTimeout(Duration.ofSeconds(10))
+            .build();
+
+    @Value("${RESEND_API_KEY:}")
+    private String resendApiKey;
+
+    @Value("${RESEND_FROM_EMAIL:otp@rajeshstationery.store}")
+    private String resendFromEmail;
 
     @Value("${app.otp.expiration-ms:300000}")
     private long otpExpirationMs;
@@ -30,14 +47,14 @@ public class OtpService {
     private static final int MAX_ATTEMPTS = 5;
 
     public OtpService(
-            JavaMailSender mailSender,
-            PasswordEncoder passwordEncoder
+            PasswordEncoder passwordEncoder,
+            ObjectMapper objectMapper
     ) {
-        this.mailSender = mailSender;
         this.passwordEncoder = passwordEncoder;
+        this.objectMapper = objectMapper;
     }
 
-    // Generate and send OTP
+    // Generate and send OTP through Resend API
     public synchronized void sendOtp(String email) {
 
         long now = System.currentTimeMillis();
@@ -51,15 +68,22 @@ public class OtpService {
             );
         }
 
+        if (resendApiKey == null || resendApiKey.isBlank()) {
+            throw new IllegalStateException(
+                    "Resend API key is not configured"
+            );
+        }
+
         String otp = String.format(
                 "%06d",
                 secureRandom.nextInt(1_000_000)
         );
 
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setTo(email);
-        message.setSubject("Your E-Commerce Login OTP");
-        message.setText(
+        Map<String, Object> payload = Map.of(
+                "from", "Rajesh Stationery <" + resendFromEmail + ">",
+                "to", List.of(email),
+                "subject", "Your E-Commerce Login OTP",
+                "text",
                 "Hello,\n\n" +
                         "Your verification OTP is: " + otp + "\n\n" +
                         "This OTP is valid for 5 minutes.\n" +
@@ -67,19 +91,65 @@ public class OtpService {
                         "Regards,\nE-Commerce Team"
         );
 
-        // Send email before saving the OTP
-        mailSender.send(message);
+        try {
+            String requestBody =
+                    objectMapper.writeValueAsString(payload);
 
-        // Store only the hashed OTP
-        otpStore.put(
-                email,
-                new OtpEntry(
-                        passwordEncoder.encode(otp),
-                        now + otpExpirationMs,
-                        now,
-                        0
-                )
-        );
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create("https://api.resend.com/emails"))
+                    .timeout(Duration.ofSeconds(20))
+                    .header("Authorization", "Bearer " + resendApiKey)
+                    .header("Content-Type", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(requestBody))
+                    .build();
+
+            HttpResponse<String> response = httpClient.send(
+                    request,
+                    HttpResponse.BodyHandlers.ofString()
+            );
+
+            if (response.statusCode() < 200 ||
+                    response.statusCode() >= 300) {
+
+                System.err.println(
+                        "Resend email failed. HTTP status: " +
+                                response.statusCode() +
+                                ", response: " + response.body()
+                );
+
+                throw new IllegalStateException(
+                        "Unable to send OTP email. Please try again later."
+                );
+            }
+
+            // Save OTP only after Resend accepts the email request
+            long sentAt = System.currentTimeMillis();
+
+            otpStore.put(
+                    email,
+                    new OtpEntry(
+                            passwordEncoder.encode(otp),
+                            sentAt + otpExpirationMs,
+                            sentAt,
+                            0
+                    )
+            );
+
+            System.out.println("OTP email accepted by Resend for: " + email);
+
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException(
+                    "OTP email request was interrupted"
+            );
+        } catch (IOException e) {
+            System.err.println(
+                    "Resend API request failed: " + e.getMessage()
+            );
+            throw new IllegalStateException(
+                    "Unable to send OTP email. Please try again later."
+            );
+        }
     }
 
     // Verify OTP
@@ -95,19 +165,16 @@ public class OtpService {
 
         long now = System.currentTimeMillis();
 
-        // Check OTP expiry
         if (now > entry.expiresAt) {
             otpStore.remove(email);
             return false;
         }
 
-        // Check maximum attempts
         if (entry.attempts >= MAX_ATTEMPTS) {
             otpStore.remove(email);
             return false;
         }
 
-        // Verify hashed OTP
         if (!passwordEncoder.matches(otp, entry.otpHash)) {
             entry.attempts++;
 
@@ -124,7 +191,6 @@ public class OtpService {
         return true;
     }
 
-    // OTP storage model
     private static class OtpEntry {
 
         private final String otpHash;
