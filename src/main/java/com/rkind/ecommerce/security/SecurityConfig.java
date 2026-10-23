@@ -85,6 +85,14 @@ public class SecurityConfig {
                         .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
 
 
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/api/shipping/quote",
+                                "/api/checkout/quote"
+                        ).permitAll()
+
+
+
                         // All other endpoints require a valid authenticated user.
                         .anyRequest().authenticated()
                 )
