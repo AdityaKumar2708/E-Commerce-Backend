@@ -85,11 +85,18 @@ public class SecurityConfig {
                         .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
 
 
-                        .requestMatchers(
-                                HttpMethod.POST,
-                                "/api/shipping/quote",
-                                "/api/checkout/quote"
-                        ).permitAll()
+                                .requestMatchers(
+                                        HttpMethod.POST,
+                                        "/api/shipping/quote",
+                                        "/api/checkout/quote"
+                                ).permitAll()
+
+// Payment endpoints require a valid logged-in user
+                                .requestMatchers(
+                                        HttpMethod.POST,
+                                        "/api/payment/create-order",
+                                        "/api/payment/verify-and-create-order"
+                                ).authenticated()
 
 
 
