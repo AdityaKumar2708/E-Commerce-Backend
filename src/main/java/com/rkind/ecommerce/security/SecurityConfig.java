@@ -74,13 +74,15 @@ public class SecurityConfig {
                         ).permitAll()
 
                         // Public catalogue browsing. Other methods remain protected.
-                        .requestMatchers(
-                                HttpMethod.GET,
-                                "/api/products",
-                                "/api/products/**",
-                                "/api/categories",
-                                "/api/categories/**"
-                        ).permitAll()
+                                .requestMatchers(
+                                        HttpMethod.GET,
+                                        "/api/products",
+                                        "/api/products/**",
+                                        "/api/categories",
+                                        "/api/categories/**",
+                                        "/api/coupons/available",
+                                        "/api/coupons/apply"
+                                ).permitAll()
 
                         .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
 
