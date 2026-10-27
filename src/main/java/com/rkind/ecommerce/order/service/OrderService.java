@@ -716,9 +716,10 @@ public class OrderService {
                             + "Good news! Your order has been accepted.\n\n"
                             + "Order Number: " + savedOrder.getOrderNumber() + "\n"
                             + "Order Status: CONFIRMED\n"
-                            + "Total Amount: Rs. "
-                            + savedOrder.getTotalAmount() + "\n\n"
+                            + "Total Amount: Rs. " + savedOrder.getTotalAmount() + "\n\n"
                             + "We will keep you updated about your order.\n\n"
+                            + "Google Maps Location:\n"
+                            + "https://maps.app.goo.gl/M2mmCK3ibD3hAVee9\n\n"
                             + "Thank you for shopping with us!\n"
                             + "Rajesh Stationery & Novelty";
 
