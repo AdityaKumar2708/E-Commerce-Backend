@@ -85,7 +85,7 @@ public class AuthService {
     }
 
     // ADMIN: Email and password login
-    @Transactional(readOnly = true)
+    @Transactional
     public AuthResponse adminLogin(AdminLoginRequest request) {
 
         String email = normalizeEmail(request.email());
