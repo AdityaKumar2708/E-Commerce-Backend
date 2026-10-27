@@ -5,11 +5,13 @@ import com.rkind.ecommerce.auth.dto.request.AdminLoginRequest;
 import com.rkind.ecommerce.auth.dto.request.SendOtpRequest;
 import com.rkind.ecommerce.auth.dto.request.VerifyOtpRequest;
 import com.rkind.ecommerce.auth.dto.response.AuthResponse;
+import com.rkind.ecommerce.auth.entity.RefreshToken;
 import com.rkind.ecommerce.auth.entity.Role;
 import com.rkind.ecommerce.auth.entity.User;
 import com.rkind.ecommerce.auth.repository.UserRepository;
 import com.rkind.ecommerce.security.JwtService;
 
+import lombok.AllArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,24 +19,14 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Locale;
 
 @Service
+@AllArgsConstructor
 public class AuthService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final OtpService otpService;
     private final JwtService jwtService;
-
-    public AuthService(
-            UserRepository userRepository,
-            PasswordEncoder passwordEncoder,
-            OtpService otpService,
-            JwtService jwtService
-    ) {
-        this.userRepository = userRepository;
-        this.passwordEncoder = passwordEncoder;
-        this.otpService = otpService;
-        this.jwtService = jwtService;
-    }
+    private final RefreshTokenService refreshTokenService;
 
     // CUSTOMER: Send OTP
     public void sendCustomerOtp(SendOtpRequest request) {
@@ -78,13 +70,17 @@ public class AuthService {
 
         String token = jwtService.generateToken(user.getEmail());
 
+        RefreshToken refreshToken =
+                refreshTokenService.createRefreshToken(user, "web");
+
         return new AuthResponse(
                 token,
                 "Bearer",
                 user.getId(),
                 user.getFullName(),
                 user.getEmail(),
-                user.getRole()
+                user.getRole(),
+                refreshToken.getToken()
         );
     }
 
@@ -125,13 +121,17 @@ public class AuthService {
 
         String token = jwtService.generateToken(admin.getEmail());
 
+        RefreshToken refreshToken =
+                refreshTokenService.createRefreshToken(admin, "web");
+
         return new AuthResponse(
                 token,
                 "Bearer",
                 admin.getId(),
                 admin.getFullName(),
                 admin.getEmail(),
-                admin.getRole()
+                admin.getRole(),
+                refreshToken.getToken()
         );
     }
 
@@ -261,6 +261,31 @@ public class AuthService {
 
         admin.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(admin);
+    }
+
+    @Transactional
+    public AuthResponse refreshAccessToken(String rawRefreshToken) {
+
+        if (rawRefreshToken == null || rawRefreshToken.isBlank()) {
+            throw new IllegalArgumentException("Refresh token is required");
+        }
+
+        RefreshToken refreshToken =
+                refreshTokenService.verifyRefreshToken(rawRefreshToken);
+
+        User user = refreshToken.getUser();
+
+        String newAccessToken = jwtService.generateToken(user.getEmail());
+
+        return new AuthResponse(
+                newAccessToken,
+                "Bearer",
+                user.getId(),
+                user.getFullName(),
+                user.getEmail(),
+                user.getRole(),
+                refreshToken.getToken()
+        );
     }
 
 }

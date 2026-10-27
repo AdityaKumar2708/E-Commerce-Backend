@@ -124,4 +124,14 @@ public class AuthController {
                 Map.of("message", "Password changed successfully")
         );
     }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<AuthResponse> refreshToken(
+            @Valid @RequestBody RefreshTokenRequest request
+    ) {
+        AuthResponse response =
+                authService.refreshAccessToken(request.refreshToken());
+
+        return ResponseEntity.ok(response);
+    }
 }
