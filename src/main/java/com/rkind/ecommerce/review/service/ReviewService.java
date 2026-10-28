@@ -62,10 +62,17 @@ public class ReviewService {
             );
         }
 
-        // Only delivered orders are eligible.
-        if (item.getOrder().getOrderStatus() != OrderStatus.DELIVERED) {
+        OrderStatus status = item.getOrder().getOrderStatus();
+
+        System.out.println("========== REVIEW DEBUG ==========");
+        System.out.println("Order Item ID: " + orderItemId);
+        System.out.println("Order Status: " + status);
+        System.out.println("==================================");
+
+        if (status != OrderStatus.DELIVERED
+                && status != OrderStatus.PICKED_UP) {
             throw new IllegalArgumentException(
-                    "You can review products only after delivery."
+                    "You can review products only after delivery or pickup."
             );
         }
 
