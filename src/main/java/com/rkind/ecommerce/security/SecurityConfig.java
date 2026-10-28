@@ -68,12 +68,19 @@ public class SecurityConfig {
 
                         // Keep only genuinely public authentication endpoints here.
                         // Narrow these patterns to exact routes after checking AuthController.
-                        .requestMatchers(
-                                "/api/auth/**",
-                                "/api/customer/auth/**"
-                        ).permitAll()
+// Keep only genuinely public authentication endpoints here.
+                                .requestMatchers(
+                                        "/api/auth/**",
+                                        "/api/customer/auth/**"
+                                ).permitAll()
 
-                        // Public catalogue browsing. Other methods remain protected.
+// Public contact form submission
+                                .requestMatchers(
+                                        HttpMethod.POST,
+                                        "/api/contact"
+                                ).permitAll()
+
+// Public catalogue browsing. Other methods remain protected.
                                 .requestMatchers(
                                         HttpMethod.GET,
                                         "/api/products",
