@@ -1,11 +1,17 @@
-
 package com.rkind.ecommerce.email;
+
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientException;
+import tools.jackson.databind.ObjectMapper;
+
+import java.util.Map;
 
 @Service
 public class EmailService {
@@ -13,10 +19,23 @@ public class EmailService {
     private static final Logger log =
             LoggerFactory.getLogger(EmailService.class);
 
-    private final JavaMailSender mailSender;
+    private static final String RESEND_API_URL =
+            "https://api.resend.com/emails";
 
-    public EmailService(JavaMailSender mailSender) {
-        this.mailSender = mailSender;
+    private final RestClient restClient;
+    private final ObjectMapper objectMapper;
+    private final String apiKey;
+    private final String fromEmail;
+
+    public EmailService(
+            ObjectMapper objectMapper,
+            @Value("${resend.ecommerce.api-key}") String apiKey,
+            @Value("${resend.ecommerce.from-email}") String fromEmail
+    ) {
+        this.restClient = RestClient.builder().build();
+        this.objectMapper = objectMapper;
+        this.apiKey = apiKey;
+        this.fromEmail = fromEmail;
     }
 
     public void sendEmail(
@@ -30,19 +49,53 @@ public class EmailService {
             );
         }
 
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setTo(to);
-        message.setSubject(subject);
-        message.setText(body);
+        if (apiKey == null || apiKey.isBlank()) {
+            throw new IllegalStateException(
+                    "Resend E-Commerce API key is not configured."
+            );
+        }
 
-        // Failure is logged and propagated to the caller.
-        // The caller can then log the order-specific failure.
-        mailSender.send(message);
+        if (fromEmail == null || fromEmail.isBlank()) {
+            throw new IllegalStateException(
+                    "Resend sender email is not configured."
+            );
+        }
 
-        log.info(
-                "Email accepted by SMTP server for recipient {} with subject {}",
-                to,
-                subject
+        Map<String, Object> payload = Map.of(
+                "from", fromEmail,
+                "to", new String[]{to},
+                "subject", subject == null ? "" : subject,
+                "text", body == null ? "" : body
         );
+
+        try {
+            String response = restClient.post()
+                    .uri(RESEND_API_URL)
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + apiKey)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(payload)
+                    .retrieve()
+                    .body(String.class);
+
+            log.info(
+                    "Email accepted by Resend for recipient {} with subject {}. Response: {}",
+                    to,
+                    subject,
+                    response
+            );
+
+        } catch (RestClientException ex) {
+            log.error(
+                    "Failed to send email through Resend to {} with subject {}",
+                    to,
+                    subject,
+                    ex
+            );
+
+            throw new IllegalStateException(
+                    "Failed to send email through Resend.",
+                    ex
+            );
+        }
     }
 }
