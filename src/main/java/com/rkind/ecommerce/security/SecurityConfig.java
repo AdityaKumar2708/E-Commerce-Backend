@@ -96,6 +96,9 @@ public class SecurityConfig {
                                         "/api/products/*/reviews"
                                 ).permitAll()
 
+                                .requestMatchers("/api/admin/order-notifications/**")
+                                .hasRole("ADMIN")
+
                         .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
 
 
