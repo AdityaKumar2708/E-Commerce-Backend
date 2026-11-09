@@ -67,12 +67,12 @@ public class OrderNotificationController {
     }
 
     // DELETE: Remove a notification email
-    @DeleteMapping("/emails/{id}")
+    @DeleteMapping("/emails")
     public ResponseEntity<OrderNotificationResponse> deleteEmail(
-            @PathVariable Long id
+            @RequestParam String email
     ) {
 
-        notificationService.removeNotificationEmail(id);
+        notificationService.removeNotificationEmail(email);
 
         return ResponseEntity.ok(
                 new OrderNotificationResponse(

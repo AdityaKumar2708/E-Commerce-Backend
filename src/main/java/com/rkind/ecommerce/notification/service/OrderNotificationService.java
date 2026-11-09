@@ -83,12 +83,13 @@ public class OrderNotificationService {
         return normalizedEmail;
     }
 
-    public void removeNotificationEmail(Long id) {
+    public void removeNotificationEmail(String email) {
 
-        OrderNotificationEmail email = emailRepository.findById(id)
-                .orElseThrow(() ->
-                        new IllegalArgumentException("Email not found."));
+        OrderNotificationEmail notificationEmail =
+                emailRepository.findByEmailIgnoreCase(email.trim())
+                        .orElseThrow(() ->
+                                new IllegalArgumentException("Email not found."));
 
-        emailRepository.delete(email);
+        emailRepository.delete(notificationEmail);
     }
 }
