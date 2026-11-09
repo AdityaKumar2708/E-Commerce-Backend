@@ -11,6 +11,9 @@ import com.rkind.ecommerce.review.entity.Review;
 import com.rkind.ecommerce.review.repository.ReviewRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.rkind.ecommerce.review.dto.ReviewResponse;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class ReviewService {
@@ -104,4 +107,23 @@ public class ReviewService {
 
         return reviewRepository.save(review);
     }
+
+
+    @Transactional(readOnly = true)
+    public List<ReviewResponse> getProductReviews(Long productId) {
+
+        return reviewRepository
+                .findByOrderItem_Product_IdOrderByCreatedAtDesc(productId)
+                .stream()
+                .map(review -> new ReviewResponse(
+                        review.getId(),
+                        review.getUser().getFullName(),
+                        review.getRating(),
+                        review.getReviewText(),
+                        review.getPhotoUrl(),
+                        review.getCreatedAt()
+                ))
+                .collect(Collectors.toList());
+    }
+
 }

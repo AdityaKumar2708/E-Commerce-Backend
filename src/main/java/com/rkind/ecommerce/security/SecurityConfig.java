@@ -91,6 +91,11 @@ public class SecurityConfig {
                                         "/api/coupons/apply"
                                 ).permitAll()
 
+                                .requestMatchers(
+                                        HttpMethod.GET,
+                                        "/api/products/*/reviews"
+                                ).permitAll()
+
                         .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
 
 
