@@ -115,6 +115,8 @@ public class SecurityConfig {
                                         "/api/payment/verify-and-create-order"
                                 ).authenticated()
 
+                                .requestMatchers("/error", "/error/**").permitAll()
+
 
 
                         // All other endpoints require a valid authenticated user.
